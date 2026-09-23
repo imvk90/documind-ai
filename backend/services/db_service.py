@@ -4,7 +4,10 @@ import os
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "extractions.db")
+if os.environ.get("VERCEL"):
+    DB_PATH = "/tmp/extractions.db"
+else:
+    DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "extractions.db")
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)

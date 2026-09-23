@@ -27,8 +27,13 @@ app.add_middleware(
 )
 
 BASE_DIR = os.path.dirname(__file__)
-UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
-SAMPLES_DIR = os.path.join(BASE_DIR, "samples")
+
+if os.environ.get("VERCEL"):
+    UPLOADS_DIR = "/tmp/uploads"
+    SAMPLES_DIR = os.path.join(BASE_DIR, "samples")
+else:
+    UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
+    SAMPLES_DIR = os.path.join(BASE_DIR, "samples")
 
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 os.makedirs(SAMPLES_DIR, exist_ok=True)
