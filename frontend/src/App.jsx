@@ -12,7 +12,7 @@ import Footer from './components/Footer';
 import { Loader2, AlertCircle, BarChart3, Zap, Target, Clock } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('workbench');
+  const [activeTab, setActiveTab] = useState('overview');
   const [samples, setSamples] = useState([]);
   const [activeSampleId, setActiveSampleId] = useState(null);
   const [extractionResult, setExtractionResult] = useState(null);
