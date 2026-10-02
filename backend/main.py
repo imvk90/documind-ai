@@ -47,13 +47,48 @@ def startup_event():
 app.mount("/static/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 app.mount("/static/samples", StaticFiles(directory=SAMPLES_DIR), name="samples")
 
+from fastapi.responses import JSONResponse, StreamingResponse, FileResponse, HTMLResponse
+
 FRONTEND_DIST = os.path.join(os.path.dirname(BASE_DIR), "frontend", "dist")
-if os.path.exists(FRONTEND_DIST):
+if os.path.exists(FRONTEND_DIST) and os.path.exists(os.path.join(FRONTEND_DIST, "assets")):
     app.mount("/assets", StaticFiles(directory=os.path.join(FRONTEND_DIST, "assets")), name="assets")
 
-    @app.get("/")
-    def serve_frontend_index():
-        return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
+
+@app.get("/")
+def serve_root():
+    index_file = os.path.join(FRONTEND_DIST, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return HTMLResponse(
+        content="""
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <title>DocuMind AI - Active</title>
+                <style>
+                    body { font-family: system-ui, -apple-system, sans-serif; background: #090d16; color: #f8fafc; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+                    .card { background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(255,255,255,0.1); padding: 2.5rem; border-radius: 1.5rem; text-align: center; max-width: 500px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
+                    h1 { color: #3b82f6; margin-top: 0; }
+                    a { color: #38bdf8; text-decoration: none; font-weight: 500; margin: 0 8px; }
+                    a:hover { text-decoration: underline; }
+                    .badge { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); padding: 4px 12px; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; display: inline-block; margin-bottom: 1rem; }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <div class="badge">🟢 API Server Live</div>
+                    <h1>DocuMind AI</h1>
+                    <p>The FastAPI Backend is running successfully on Render.</p>
+                    <div style="margin: 1.5rem 0;">
+                        <a href="/api/health">/api/health</a> |
+                        <a href="/api/samples">/api/samples</a> |
+                        <a href="/api/history">/api/history</a>
+                    </div>
+                </div>
+            </body>
+        </html>
+        """
+    )
 
 
 
