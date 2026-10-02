@@ -16,13 +16,25 @@ def extract_with_gemini(image_path: str, api_key: Optional[str] = None) -> Dict[
     except Exception:
         pass
 
+    # Resolve API Key
     effective_api_key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-    
+
+    # Filter out invalid placeholder/OAuth keys (e.g., AQ.Ab...)
+    if effective_api_key and (effective_api_key.startswith("AQ.") or len(effective_api_key) < 20):
+        print(f"[Gemini Service] Provided API key '{effective_api_key[:8]}...' is an invalid format. Must start with AIzaSy...")
+        effective_api_key = None
+
     if not effective_api_key:
-        print("[Gemini Service] No API Key provided. Running in Demo Mock Mode...")
-        return get_mock_extraction(image_path)
-        
+        print("[Gemini Service] No valid Gemini API Key provided. Running in Demo Mock Mode...")
+        result = get_mock_extraction(image_path)
+        result["is_demo_fallback"] = True
+        result["fallback_reason"] = "No valid Gemini API key provided. Please configure a valid key starting with 'AIzaSy...' in settings."
+        return result
+
     try:
+        # Prevent google-genai SDK from picking up invalid GOOGLE_API_KEY from environment
+        os.environ.pop("GOOGLE_API_KEY", None)
+
         from google import genai
         from google.genai import types
 
@@ -82,14 +94,14 @@ Return ONLY a single valid JSON object matching this structure:
   }
 }
 """
-        # Try primary model gemini-3.6-flash, fallback to gemini-3.5-flash, gemini-flash-latest, or gemini-3.1-pro-preview
-        candidate_models = ['gemini-3.6-flash', 'gemini-3.5-flash', 'gemini-flash-latest', 'gemini-3.1-pro-preview']
+        # Official active production models in Google Gemini API
+        candidate_models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']
         response = None
         last_err = None
 
         for model_name in candidate_models:
             try:
-                print(f"[Gemini Service] Sending image to {model_name}...")
+                print(f"[Gemini Service] Analyzing document with {model_name}...")
                 response = client.models.generate_content(
                     model=model_name,
                     contents=[img, prompt],
@@ -99,7 +111,7 @@ Return ONLY a single valid JSON object matching this structure:
                     )
                 )
                 if response and response.text:
-                    print(f"[Gemini Service] Success with {model_name}!")
+                    print(f"[Gemini Service] Real-time AI extraction successful with {model_name}!")
                     break
             except Exception as err:
                 print(f"[Gemini Service] Model {model_name} failed: {err}")
@@ -109,27 +121,28 @@ Return ONLY a single valid JSON object matching this structure:
             raise last_err or RuntimeError("No response from Gemini API")
 
         raw_text = response.text.strip()
-        # Clean potential markdown code blocks
         if raw_text.startswith("```"):
             raw_text = re.sub(r'^```(json)?\n', '', raw_text)
             raw_text = re.sub(r'\n```$', '', raw_text)
-            
+
         data = json.loads(raw_text)
+        data["is_demo_fallback"] = False
         return data
 
     except Exception as e:
-        print(f"[Gemini Service] API call failed: {e}. Falling back to mock extraction...")
-        return get_mock_extraction(image_path)
-
+        print(f"[Gemini Service] API call failed: {e}. Falling back to contextual mock extraction...")
+        mock_data = get_mock_extraction(image_path)
+        mock_data["is_demo_fallback"] = True
+        mock_data["fallback_reason"] = f"Gemini API request failed ({str(e)}). Please verify your API key."
+        return mock_data
 
 
 def get_mock_extraction(image_path: str) -> Dict[str, Any]:
     """
-    Smart contextual fallback mock generator based on filename/image inspection.
-    Provides crisp sample data with real bounding boxes for UI demonstration.
+    Contextual mock extraction fallback when no valid API key is present.
     """
     filename = os.path.basename(image_path).lower()
-    
+
     if "invoice" in filename:
         return {
             "document_type": "invoice",
@@ -195,47 +208,33 @@ def get_mock_extraction(image_path: str) -> Dict[str, Any]:
                 "expiration_date": 0.98
             }
         }
-    else:  # Default Receipt
+    else:  # Default Uploaded Image Fallback
+        clean_name = os.path.splitext(os.path.basename(image_path))[0].replace("_", " ").title()
         return {
             "document_type": "receipt",
-            "vendor_name": "Blue Bottle Coffee Co.",
-            "date": "2026-09-22",
+            "vendor_name": f"Document: {clean_name}",
+            "date": "2026-10-02",
             "currency": "USD",
-            "subtotal": 16.50,
-            "tax": 1.45,
+            "subtotal": 85.00,
+            "tax": 7.50,
             "discount": 0.00,
-            "total_amount": 17.95,
+            "total_amount": 92.50,
             "line_items": [
                 {
-                    "description": "Double Espresso Roast",
-                    "quantity": 2,
-                    "unit_price": 4.50,
-                    "total_price": 9.00
-                },
-                {
-                    "description": "Oat Milk Mocha",
+                    "description": f"Extracted Item from {clean_name}",
                     "quantity": 1,
-                    "unit_price": 6.50,
-                    "total_price": 6.50
-                },
-                {
-                    "description": "Almond Croissant",
-                    "quantity": 1,
-                    "unit_price": 1.00,
-                    "total_price": 1.00
+                    "unit_price": 85.00,
+                    "total_price": 85.00
                 }
             ],
             "bounding_boxes": {
-                "vendor_name": [60, 220, 110, 780],
-                "date": [130, 280, 160, 720],
-                "total_amount": [740, 620, 790, 880],
-                "subtotal": [640, 620, 675, 880],
-                "tax": [680, 620, 715, 880]
+                "vendor_name": [50, 100, 120, 900],
+                "date": [140, 100, 180, 500],
+                "total_amount": [800, 600, 850, 900]
             },
             "confidence_scores": {
-                "vendor_name": 0.98,
-                "date": 0.96,
-                "total_amount": 0.99,
-                "line_items": 0.96
+                "vendor_name": 0.92,
+                "date": 0.90,
+                "total_amount": 0.94
             }
         }

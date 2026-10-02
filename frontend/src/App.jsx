@@ -25,7 +25,8 @@ export default function App() {
 
   // API Key management
   const [apiKey, setApiKey] = useState(() => {
-    return localStorage.getItem('gemini_api_key') || 'AQ.Ab8RN6ILMbJEYr3i2Rs0UdwkrY90--d4GRQIL1JbgWoNIbCgww';
+    const stored = localStorage.getItem('gemini_api_key');
+    return (stored && !stored.startsWith('AQ.')) ? stored : '';
   });
 
   useEffect(() => {
@@ -196,6 +197,24 @@ export default function App() {
               <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-center space-x-2">
                 <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0" />
                 <span>{errorMsg}</span>
+              </div>
+            )}
+
+            {/* Demo Mode Notice Banner if using fallback extraction */}
+            {extractionResult?.is_demo_fallback && (
+              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 flex items-center justify-between shadow-lg">
+                <div className="flex items-center space-x-2">
+                  <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                  <span>
+                    <strong>Demo Mode:</strong> {extractionResult.fallback_reason || "Gemini API key not configured."}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setIsApiKeyOpen(true)}
+                  className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-medium rounded-xl border border-amber-500/40 text-xs transition flex-shrink-0 ml-3"
+                >
+                  Configure API Key
+                </button>
               </div>
             )}
 
