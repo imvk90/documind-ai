@@ -34,7 +34,10 @@ export default function ApiKeyModal({ isOpen, onClose, currentApiKey, onSaveApiK
 
         <div className="space-y-3">
           <p className="text-xs text-slate-400">
-            Enter your Google Gemini API key to enable live single-pass multimodal vision processing.
+            Enter your Google Gemini API key to run real-time AI vision analysis on your uploaded images.{' '}
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-blue-400 underline hover:text-blue-300">
+              Get free key from Google AI Studio &rarr;
+            </a>
           </p>
 
           <input
@@ -45,9 +48,9 @@ export default function ApiKeyModal({ isOpen, onClose, currentApiKey, onSaveApiK
             className="w-full bg-slate-950 border border-slate-700 text-xs font-mono text-slate-200 rounded-xl p-3 focus:outline-none focus:border-blue-500"
           />
 
-          <p className="text-[11px] text-slate-500 flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-blue-400" />
-            <span>Your key is stored locally in your session header and backend `.env`.</span>
+          <p className="text-[11px] text-slate-400 flex items-center gap-1.5 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+            <span><strong>Privacy Guaranteed:</strong> Key is stored in browser local storage and never exposed or stored in git repositories.</span>
           </p>
         </div>
 
